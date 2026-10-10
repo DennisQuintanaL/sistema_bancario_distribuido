@@ -9,7 +9,7 @@ import path from 'node:path';
 import { randomBytes, timingSafeEqual, createCipheriv, createDecipheriv, createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-// 1. Configuración de Rutas Absolutas para Vercel
+// 1. Configuración de Rutas Absolutas para Vercel / Local
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '..');
@@ -66,14 +66,24 @@ app.use(session({
   }
 }));
 
-// 5. Servir Archivos Estáticos (Garantiza encontrar app.js y bank.css)
+// 5. Rutas API
+
+// Ruta para entregar el token CSRF al frontend
+app.get('/api/v1/csrf', (req, res) => {
+  if (!req.session.csrfToken) {
+    req.session.csrfToken = randomBytes(32).toString('hex');
+  }
+  res.json({ csrfToken: req.session.csrfToken });
+});
+
+// 6. Servir Archivos Estáticos (Garantiza encontrar app.js y bank.css)
 const publicPath = fs.existsSync(path.join(root, 'public')) 
   ? path.join(root, 'public') 
   : path.join(__dirname, 'public');
 
 app.use(express.static(publicPath));
 
-// 6. Rutas de la Aplicación (Ruta principal fallback)
+// Ruta principal fallback
 app.get('/', (req, res) => {
   const indexPath = path.join(publicPath, 'index.html');
   if (fs.existsSync(indexPath)) {
